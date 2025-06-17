@@ -7,12 +7,25 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
 class PresensiController extends Controller
-{    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+{
+    public function __construct()
     {
-        $presensis = Presensi::latest()->paginate(10);
+        $this->middleware('auth');
+        $this->middleware('admin')->except(['index', 'show']);
+    }
+
+    /**
+     * Display a listing of the resource.
+     */    public function index()
+    {
+        $user = auth()->user();
+        
+        if ($user->isAdmin()) {
+            $presensis = Presensi::with('user')->latest()->paginate(10);
+        } else {
+            $presensis = Presensi::where('user_id', $user->id)->latest()->paginate(10);
+        }
+        
         return view('presensi.index', compact('presensis'));
     }
 
@@ -26,8 +39,7 @@ class PresensiController extends Controller
 
     /**
      * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+     */    public function store(Request $request)
     {
         $request->validate([
             'nama' => 'required|string|max:255',
@@ -38,7 +50,10 @@ class PresensiController extends Controller
             'waktu' => 'required|date_format:H:i'
         ]);
 
-        Presensi::create($request->all());
+        $data = $request->all();
+        $data['user_id'] = auth()->id();
+
+        Presensi::create($data);
 
         return redirect()->route('presensi.index')->with('success', 'Data presensi berhasil ditambahkan!');
     }

@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Presensi;
+use App\Models\User;
 use Carbon\Carbon;
 
 class PresensiSeeder extends Seeder
@@ -14,59 +15,43 @@ class PresensiSeeder extends Seeder
      */
     public function run(): void
     {
-        $data = [
-            [
-                'nama' => 'Ahmad Rizki',
-                'nim' => '2021001',
-                'status' => 'Hadir',
-                'keterangan' => null,
-                'tanggal' => Carbon::today(),
-                'waktu' => '08:00:00',
-            ],
-            [
-                'nama' => 'Siti Nurhaliza',
-                'nim' => '2021002',
-                'status' => 'Hadir',
-                'keterangan' => null,
-                'tanggal' => Carbon::today(),
-                'waktu' => '08:05:00',
-            ],
-            [
-                'nama' => 'Budi Santoso',
-                'nim' => '2021003',
-                'status' => 'Izin',
-                'keterangan' => 'Ada acara keluarga',
-                'tanggal' => Carbon::today(),
-                'waktu' => '08:00:00',
-            ],
-            [
-                'nama' => 'Dewi Lestari',
-                'nim' => '2021004',
-                'status' => 'Sakit',
-                'keterangan' => 'Demam dan flu',
-                'tanggal' => Carbon::today(),
-                'waktu' => '08:00:00',
-            ],
-            [
-                'nama' => 'Eko Prasetyo',
-                'nim' => '2021005',
-                'status' => 'Alpha',
-                'keterangan' => null,
-                'tanggal' => Carbon::today(),
-                'waktu' => '08:00:00',
-            ],
-            [
-                'nama' => 'Fatimah Zahra',
-                'nim' => null,
-                'status' => 'Hadir',
-                'keterangan' => 'Tamu',
-                'tanggal' => Carbon::yesterday(),
-                'waktu' => '09:15:00',
-            ],
-        ];
-
-        foreach ($data as $item) {
-            Presensi::create($item);
+        $users = User::where('role', 'user')->get();
+        $statuses = ['Hadir', 'Izin', 'Sakit', 'Alpha'];
+        
+        // Generate presensi for last 30 days
+        for ($i = 30; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i);
+            
+            foreach ($users as $user) {
+                // Not everyone present every day
+                if (rand(1, 10) <= 8) { // 80% chance of having presensi
+                    $status = $statuses[array_rand($statuses)];
+                    
+                    // Adjust probability - more likely to be present
+                    if (rand(1, 10) <= 7) {
+                        $status = 'Hadir';
+                    }
+                    
+                    $keterangan = null;
+                    if ($status == 'Izin') {
+                        $keterangan = 'Ada keperluan keluarga';
+                    } elseif ($status == 'Sakit') {
+                        $keterangan = 'Demam dan flu';
+                    } elseif ($status == 'Alpha') {
+                        $keterangan = null;
+                    }
+                    
+                    Presensi::create([
+                        'user_id' => $user->id,
+                        'nama' => $user->name,
+                        'nim' => '202' . str_pad($user->id, 4, '0', STR_PAD_LEFT),
+                        'status' => $status,
+                        'keterangan' => $keterangan,
+                        'tanggal' => $date->format('Y-m-d'),
+                        'waktu' => $date->format('H:i'),
+                    ]);
+                }
+            }
         }
     }
 }
